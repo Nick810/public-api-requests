@@ -13,6 +13,7 @@ let $currentIndex = 0;
 // Generate Cards HTML
 function generateHTML(data) {
   $employeesInfo.push(data)
+  console.log($employeesInfo)
   const $card = `
       <div class="card" data-index="${$indexCounter}">
         <div class="card-img-container">
@@ -20,7 +21,7 @@ function generateHTML(data) {
           alt="A profile picture of ${data.name.first} ${data.name.last}">
         </div>
         <div class="card-info-container">
-          <h3 id="name" class="card-name cap">${data.name.first} ${data.name.last}</h3>
+          <h3 class="card-name cap">${data.name.first} ${data.name.last}</h3>
           <p class="card-text">${data.email}</p>
           <p class="card-text cap">${data.location.city}, ${data.location.state}</p>
         </div>
@@ -30,20 +31,20 @@ function generateHTML(data) {
   $indexCounter += 1;
 }
 
-
-function displayModal(index) {
-  const {name, dob, phone, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
+// Generate modal HTML
+function generateModalHTML(index) {
+  const {name, dob, cell, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
   let $date = new Date(dob.date);
   const $modalHTML = `
       <div class="modal">
-        <div class="modal-info-container">
         <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
+        <div class="modal-info-container">
           <img class="modal-img" src="${picture.large}" alt="A picture of ${name.first} ${name.last}" data-index="${index}">
           <h3 id="name" class="modal-name cap">${name.first} ${name.last}</h3>
           <p class="modal-text">${email}</p>
           <p class="modal-text cap">${city}</p>
           <hr>
-          <p class="modal-text">${phone}</p>
+          <p class="modal-text">${cell}</p>
           <p class="modal-text">${street.number} ${street.name}, ${state} ${postcode}</p>
           <p class="modal-text">Birthday: ${$date.getMonth()}/${$date.getDate()}/${$date.getFullYear()}</p>
         </div>
@@ -59,9 +60,10 @@ function displayModal(index) {
   checkDataIndex(index);
 }
 
-
+/* Check for modal index. If index is 0, remove the previous button.
+   If index is the last index of all the employeees, remove next button.
+*/
 function checkDataIndex(index) {
-  console.log(index)
   if (index === 0) {
     $('#modal-prev').hide();
     $('#modal-next').show();
@@ -74,20 +76,18 @@ function checkDataIndex(index) {
   }
 }
 
-
+// Switching modal animation.
 function switchModal(index, translate) {
-  const {name, dob, phone, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
+  const {name, dob, cell, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
   let $date = new Date(dob.date);
 
   checkDataIndex(index);
 
-  $('#modal-close-btn').remove();
-  $(`<button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>`).insertBefore('.modal-info-container');
-
-  $('.modal').children().css({
+  $('.modal-info-container').children().css({
     'transition': 'transform 0.4s ease-out, opacity 0.4s ease-out',
     'opacity': '0',
-    'transform': `translateX(${translate}px)`
+    'transform': `translateX(${translate}px)`,
+    'will-change': 'transform, opacity'
   });
 
   setTimeout(() => {
@@ -99,16 +99,17 @@ function switchModal(index, translate) {
     $('.modal-name').text(`${name.first} ${name.last}`);
     $('.modal-text:eq(0)').text(`${email}`);
     $('.modal-text:eq(1)').text(`${city}`);
-    $('.modal-text:eq(2)').text(`${phone}`);
+    $('.modal-text:eq(2)').text(`${cell}`);
     $('.modal-text:eq(3)').text(`${street.number} ${street.name}, ${state} ${postcode}`);
     $('.modal-text:eq(4)').text(`Birthday: ${$date.getMonth()}/${$date.getDate()}/${$date.getFullYear()}`);
   }, 400);
 
   setTimeout(() => {
-    $('.modal').children().css({
+    $('.modal-info-container').children().css({
       'transition': 'transform 0.4s ease-out, opacity 0.4s ease-out',
       'opacity': '1',
-      'transform': `translateX(0px)`
+      'transform': `translateX(0px)`,
+      'will-change': 'transform, opacity'
     });
   }, 410);
 }
@@ -124,7 +125,7 @@ $(document).ready(() => {
 
   // Request API data from randomuser.me and append each data onto the page.
   $.ajax({
-    url: 'https://randomuser.me/api/?inc=gender,name,location,email,dob,phone,picture&results=12',
+    url: 'https://randomuser.me/api/?inc=gender,name,location,email,dob,cell,picture&results=12',
     dataType: 'json',
     success: function(data) {
       let $people = data.results;
@@ -135,13 +136,23 @@ $(document).ready(() => {
   // Search employees according to thier names.
   $('#search-input').on('keyup', () => {
     const $inputValue = $('#search-input').val().toLowerCase();
+
+    $('h3.card-name').each((index, value) => {
+      if ($(value).text().toLowerCase().includes($inputValue)) {
+        $(value).parent().parent().show();
+      } else {
+        $(value).parent().parent().hide();
+      }
+    });
   });
 
-  // Show Modal Listener
+  /* - Show-Modal listener
+     - Animate modal
+  */
   $('#gallery').click((e) => {
     if (e.target.id !== gallery) {
       const $index = parseInt($(e.target).closest('.card').attr('data-index'));
-      displayModal($index);
+      generateModalHTML($index);
       $('.modal').css({
         'opacity': '0',
         'transform': 'translateY(200px) scale(0.5)'
@@ -159,7 +170,9 @@ $(document).ready(() => {
   })
 });
 
-// Listen for click on close button to close the modal
+/* - Listen for click on close button to close the modal
+   - Listen for click on next, previous button on the modal
+*/
 $(document).click((e) => {
   $currentIndex = parseInt($('.modal-img').attr('data-index'));
   if (e.target.id === 'modal-close-btn' || e.target.tagName === 'STRONG') {
@@ -172,4 +185,4 @@ $(document).click((e) => {
     $currentIndex = $currentIndex + 1;
     switchModal($currentIndex, -20);
   }
-})
+});
