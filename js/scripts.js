@@ -13,7 +13,6 @@ let $currentIndex = 0;
 // Generate Cards HTML
 function generateHTML(data) {
   $employeesInfo.push(data)
-  console.log($employeesInfo)
   const $card = `
       <div class="card" data-index="${$indexCounter}">
         <div class="card-img-container">
@@ -76,12 +75,19 @@ function checkDataIndex(index) {
   }
 }
 
+// Enable previous and next button after animation is completed.
+function enableButton() {
+  return $('#modal-prev, #modal-next').removeAttr('style');
+}
+
 // Switching modal animation.
 function switchModal(index, translate) {
   const {name, dob, cell, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
   let $date = new Date(dob.date);
 
   checkDataIndex(index);
+
+  $('.modal-info-container').children().on('transitionend', enableButton);
 
   $('.modal-info-container').children().css({
     'transition': 'transform 0.4s ease-out, opacity 0.4s ease-out',
@@ -150,7 +156,7 @@ $(document).ready(() => {
      - Animate modal
   */
   $('#gallery').click((e) => {
-    if (e.target.id !== gallery) {
+    if (e.target.id !== 'gallery') {
       const $index = parseInt($(e.target).closest('.card').attr('data-index'));
       generateModalHTML($index);
       $('.modal').css({
@@ -179,9 +185,11 @@ $(document).click((e) => {
     $('.modal-container').fadeToggle();
     $('.modal-container').html('');
   } else if (e.target.id === 'modal-prev') {
+    $(e.target).css('pointerEvents', 'none');
     $currentIndex = $currentIndex - 1;
     switchModal($currentIndex, 20);
   } else if (e.target.id === 'modal-next') {
+    $(e.target).css('pointerEvents', 'none');
     $currentIndex = $currentIndex + 1;
     switchModal($currentIndex, -20);
   }
