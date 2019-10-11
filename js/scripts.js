@@ -6,15 +6,15 @@ const $searchBar = `
         <input type="submit" value="&#x1F50D;" id="serach-submit" class="search-submit">
     </form>
   `;
-let $indexCounter = 0;
 let $currentIndex = 0;
+let $animationComplete = false;
 
 //  ----- Functions ----- //
 // Generate Cards HTML
 function generateHTML(data) {
   $employeesInfo.push(data)
   const $card = `
-      <div class="card" data-index="${$indexCounter}">
+      <div class="card" data-index="${$employeesInfo.length}">
         <div class="card-img-container">
           <img class="card-img" src="${data.picture.large}"
           alt="A profile picture of ${data.name.first} ${data.name.last}">
@@ -27,7 +27,6 @@ function generateHTML(data) {
       </div>
     `;
   $($card).appendTo('#gallery');
-  $indexCounter += 1;
 }
 
 // Generate modal HTML
@@ -56,7 +55,42 @@ function generateModalHTML(index) {
     `;
 
   $($modalHTML).appendTo('.modal-container');
+  $(document).on('keyup', navigateModal);
   checkDataIndex(index);
+}
+
+// Navigate through modal using left and right arrow keys or escape to close modal.
+function navigateModal(e) {
+  if (!$animationComplete) {
+    if (e.code === 'ArrowLeft') {
+      $currentIndex = $currentIndex - 1;
+      if ($currentIndex < 0) {
+        $currentIndex = $currentIndex + 1;
+        return false;
+      } else {
+        $animationComplete = !$animationComplete;
+        switchModal($currentIndex, 20);
+      }
+    } else if (e.code === 'ArrowRight') {
+      $currentIndex = $currentIndex + 1;
+      if ($currentIndex > $employeesInfo.length - 1) {
+        $currentIndex = $currentIndex - 1;
+        return false;
+      } else {
+        $animationComplete = !$animationComplete;
+        switchModal($currentIndex, 20);
+      }
+    } else if (e.code === 'Escape') {
+      modalClose();
+    }
+  }
+}
+
+// Animate closing modal
+function modalClose() {
+  $(document).off('keyup', navigateModal);
+  $('.modal-container').fadeToggle();
+  $('.modal-container').html('');
 }
 
 /* Check for modal index. If index is 0, remove the previous button.
@@ -66,7 +100,7 @@ function checkDataIndex(index) {
   if (index === 0) {
     $('#modal-prev').hide();
     $('#modal-next').show();
-  } else if (index === 11) {
+  } else if (index === $employeesInfo.length - 1) {
     $('#modal-next').hide();
     $('#modal-prev').show();
   } else {
@@ -77,22 +111,19 @@ function checkDataIndex(index) {
 
 // Enable previous and next button after animation is completed.
 function enableButton() {
-  return $('#modal-prev, #modal-next').removeAttr('style');
+  $animationComplete = false;
+  return $('#modal-prev, #modal-next').css('pointer-events', 'initial');
 }
 
 // Switching modal animation.
-function switchModal(index, translate) {
+function switchModal(index, translateDistance) {
   const {name, dob, cell, email, location: {city, street, state, postcode}, picture} = $employeesInfo[index];
   let $date = new Date(dob.date);
-
-  checkDataIndex(index);
-
-  $('.modal-info-container').children().on('transitionend', enableButton);
 
   $('.modal-info-container').children().css({
     'transition': 'transform 0.4s ease-out, opacity 0.4s ease-out',
     'opacity': '0',
-    'transform': `translateX(${translate}px)`,
+    'transform': `translateX(${translateDistance}px)`,
     'will-change': 'transform, opacity'
   });
 
@@ -118,6 +149,12 @@ function switchModal(index, translate) {
       'will-change': 'transform, opacity'
     });
   }, 410);
+
+  setTimeout(() => {
+    enableButton();
+  }, 810)
+
+  checkDataIndex(parseInt(`${index}`));
 }
 
 // ----- When the page ready do the followings ----- //
@@ -157,7 +194,7 @@ $(document).ready(() => {
   */
   $('#gallery').click((e) => {
     if (e.target.id !== 'gallery') {
-      const $index = parseInt($(e.target).closest('.card').attr('data-index'));
+      const $index = parseInt($(e.target).closest('.card').attr('data-index')) - 1;
       generateModalHTML($index);
       $('.modal').css({
         'opacity': '0',
@@ -182,8 +219,7 @@ $(document).ready(() => {
 $(document).click((e) => {
   $currentIndex = parseInt($('.modal-img').attr('data-index'));
   if (e.target.id === 'modal-close-btn' || e.target.tagName === 'STRONG') {
-    $('.modal-container').fadeToggle();
-    $('.modal-container').html('');
+    modalClose();
   } else if (e.target.id === 'modal-prev') {
     $(e.target).css('pointerEvents', 'none');
     $currentIndex = $currentIndex - 1;
