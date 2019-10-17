@@ -78,7 +78,7 @@ function navigateModal(e) {
         return false;
       } else {
         $animationComplete = !$animationComplete;
-        switchModal($currentIndex, 20);
+        switchModal($currentIndex, -20);
       }
     } else if (e.code === 'Escape') {
       modalClose();
@@ -172,7 +172,7 @@ $(document).ready(() => {
     dataType: 'json',
     success: function(data) {
       let $people = data.results;
-      return $people.map((employee) => generateHTML(employee));
+      return $people.map(employee => generateHTML(employee));
     }
   });
 
